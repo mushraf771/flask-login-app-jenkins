@@ -13,3 +13,11 @@ COPY . .
 RUN pip install -r requirements.txt
 EXPOSE 5000
 CMD ["python", "app.py"]
+
+# FROM jenkins/jenkins:lts 
+# USER root 
+# # Install Docker CLI inside the Jenkins Container 
+# RUN apt-get update && \ 
+# apt-get install -y docker.io && \ 
+# apt-get clean 
+# USER jenkins 
