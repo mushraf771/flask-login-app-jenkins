@@ -2,48 +2,50 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'mushraf771/flask-login-app-jenkins'
-        DOCKERHUB_CREDENTIALS = 'docker-hub-creds'
+        IMAGE_NAME = 'mushraf771/flask-lab-app'
+        CONTAINER_NAME = 'flask-lab-container'
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Clone Repo') {
             steps {
-                git url: 'https://github.com/mushraf771/flask-login-app-jenkins.git', branch: 'main'
+                git branch: 'main', url: 'https://github.com/mushraf771/flask-login-app-jenkins.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    dockerImage = docker.build("${IMAGE_NAME}:latest")
+                sh 'docker build -t ${IMAGE_NAME}:latest .'
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+                    sh 'echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin'
                 }
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
-                        dockerImage.push('latest')
-                    }
-                }
+                sh 'docker push ${IMAGE_NAME}:latest'
             }
         }
 
-        stage('Run Container') {
+        stage('Deploy Container') {
             steps {
-                script {
-                    sh 'docker rm -f flask-container || true'
-                    sh "docker run -d --name flask-container -p 5000:5000 ${IMAGE_NAME}:latest"
-                }
+                sh '''
+                    docker rm -f ${CONTAINER_NAME} || true
+                    docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
+                '''
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline completed.'
+            sh 'docker logout'
         }
     }
 }
